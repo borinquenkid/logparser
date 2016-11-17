@@ -1,6 +1,6 @@
-package nl.basjes.parse;
+package com.ehi.carshare;
 
-public class MyRecordStats {
+public class ApacheHttpLogStats {
 	
 	
 	private String actionName;

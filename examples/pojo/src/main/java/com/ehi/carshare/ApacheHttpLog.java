@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.basjes.parse;
+package com.ehi.carshare;
 
 import nl.basjes.parse.core.Field;
 
@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
-public class MyRecord {
+public class ApacheHttpLog {
 
 	private String clientIdentd;
 	private String dateTimeString;

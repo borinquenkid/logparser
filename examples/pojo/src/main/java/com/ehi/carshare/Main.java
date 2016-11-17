@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.basjes.parse;
+package com.ehi.carshare;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -79,7 +79,7 @@ public final class Main {
 
 		printAllPossibles(logformat);
 
-		Parser<MyRecord> parser = new ApacheHttpdLoglineParser<MyRecord>(MyRecord.class, logformat);
+		Parser<ApacheHttpLog> parser = new ApacheHttpdLoglineParser<ApacheHttpLog>(ApacheHttpLog.class, logformat);
 		parser.ignoreMissingDissectors();
 
 		String inputFile = "/Users/walterbduquedeestrada/logs/access_log-20160807";
@@ -100,11 +100,11 @@ public final class Main {
 		reader.close();
 		
 		//Parse apache logs
-		List<MyRecord> myRecords = new ArrayList<MyRecord>();
+		List<ApacheHttpLog> myRecords = new ArrayList<ApacheHttpLog>();
 		for (String readLine : readLines) {
 
 			try {
-				MyRecord myRecord = new MyRecord();
+				ApacheHttpLog myRecord = new ApacheHttpLog();
 				parser.parse(myRecord, readLine);
 				if (myRecord.getAction() != null && "200".equals(myRecord.getStatus()) && myRecord.getPath() != null
 						&& myRecord.getPath().contains("WSUser")) {
@@ -115,25 +115,25 @@ public final class Main {
 		}
 		
 		//Group by action
-		Map<String, List<MyRecord>> map = new HashMap<String, List<MyRecord>>();
-		for (MyRecord item : myRecords) {
+		Map<String, List<ApacheHttpLog>> map = new HashMap<String, List<ApacheHttpLog>>();
+		for (ApacheHttpLog item : myRecords) {
 
 			String key = item.getAction();
 			if (map.get(key) == null) {
-				map.put(key, new ArrayList<MyRecord>());
+				map.put(key, new ArrayList<ApacheHttpLog>());
 			}
 			map.get(key).add(item);
 		}
 		
 		//Collect stats
-		List<MyRecordStats> recordStats = new ArrayList<MyRecordStats>();
-		for (Entry<String, List<MyRecord>> entry : map.entrySet()) {
-			MyRecordStats stats = new MyRecordStats();
+		List<ApacheHttpLogStats> recordStats = new ArrayList<ApacheHttpLogStats>();
+		for (Entry<String, List<ApacheHttpLog>> entry : map.entrySet()) {
+			ApacheHttpLogStats stats = new ApacheHttpLogStats();
 			stats.setActionName(entry.getKey());
 			long responseCount = entry.getValue().size();
 			stats.setResponseCount(responseCount);
 			long sum = 0;
-			for(MyRecord myRecord:entry.getValue()) {
+			for(ApacheHttpLog myRecord:entry.getValue()) {
 				sum = sum + myRecord.getResponseTime();
 			}
 			BigDecimal average = new BigDecimal(sum).divide(new BigDecimal(responseCount*1000000), 2, RoundingMode.HALF_UP).setScale(2, RoundingMode.UP);
@@ -145,8 +145,8 @@ public final class Main {
 		//Write lines to file
 		String outputFile = "/Users/walterbduquedeestrada/logs/access_log-20160807.csv";
 		PrintWriter f0 = new PrintWriter(new FileWriter(outputFile));
-		f0.print(MyRecord.headerString());
-		for (MyRecordStats myRecordStats : recordStats) {
+		f0.print(ApacheHttpLog.headerString());
+		for (ApacheHttpLogStats myRecordStats : recordStats) {
 			f0.print(myRecordStats.toString());
 		}
 		f0.close();
