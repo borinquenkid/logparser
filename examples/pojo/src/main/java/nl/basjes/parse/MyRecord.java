@@ -18,57 +18,148 @@ package nl.basjes.parse;
 
 import nl.basjes.parse.core.Field;
 
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
 public class MyRecord {
 
-    private final Map<String, String> results = new HashMap<>(32);
+	private String clientIdentd;
+	private String dateTimeString;
+	private String endpoint;
+	private String ipAddress;
 
-    @Field("STRING:request.firstline.uri.query.*")
-    public void setQueryDeepMany(final String name, final String value) {
-        results.put(name, value);
-    }
 
-    @Field("STRING:request.firstline.uri.query.img")
-    public void setQueryImg(final String name, final String value) {
-        results.put(name, value);
-    }
+	private String method;
+	private String protocol;
+	private String path;
+	private String userID;
+	private String action;
+	private long responseSize;
+	private long responseTime;
+	private String status;
 
-    @Field("IP:connection.client.host")
-    public void setIP(final String value) {
-        results.put("IP:connection.client.host", value);
-    }
+	@Field("STRING:request.firstline.uri.query.action")
+	public void setAction(String action) {
+		this.action = action;
 
-    @Field({
-        "HTTP.QUERYSTRING:request.firstline.uri.query",
-        "NUMBER:connection.client.logname",
-        "STRING:connection.client.user",
-        "TIME.STAMP:request.receive.time",
-        "HTTP.URI:request.firstline.uri",
-        "BYTES:response.body.bytesclf",
-        "HTTP.URI:request.referer",
-        "HTTP.USERAGENT:request.user-agent",
-        "TIME.DAY:request.receive.time.day",
-        "TIME.HOUR:request.receive.time.hour",
-        "TIME.MONTHNAME:request.receive.time.monthname"
-        })
-    public void setValue(final String name, final String value) {
-        results.put(name, value);
-    }
+	}
 
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        TreeSet<String> keys = new TreeSet<>(results.keySet());
-        for (String key : keys) {
-            sb.append(key).append(" = ").append(results.get(key)).append('\n');
-        }
+	@Field("IP:connection.client.host")
+	public void setIpAddress(String ipAddress) {
+		this.ipAddress = ipAddress;
+	}
 
-        return sb.toString();
-    }
+	@Field("STRING:connection.client.user")
+	public void setClientIdentd(String clientIdentd) {
+		this.clientIdentd = clientIdentd;
+	}
 
-    public void clear() {
-        results.clear();
-    }
+	@Field("HTTP.USERINFO:request.referer.userinfo")
+	public void setUserID(String userID) {
+		this.userID = userID;
+	}
+
+	@Field("TIME.STAMP:request.receive.time")
+	public void setDateTimeString(String dateTimeString) {
+		this.dateTimeString = dateTimeString;
+	}
+
+	@Field("HTTP.HOST:request.firstline.uri.method")
+	public void setMethod(String method) {
+		this.method = method;
+	}
+
+	@Field("HTTP.HOST:request.referer.host")
+	public void setEndpoint(String endpoint) {
+		this.endpoint = endpoint;
+	}
+
+	@Field("HTTP.PROTOCOL:request.referer.protocol")
+	public void setProtocol(String protocol) {
+		this.protocol = protocol;
+	}
+
+	@Field("HTTP.PATH:request.firstline.uri.path")
+	public void setPath(String path) {
+		this.path = path;
+	}
+
+	@Field("BYTES:response.body.bytesclf")
+	public void setResponseSize(String responseSize) {
+		
+		this.responseSize = parseLong(responseSize);
+
+	}
+	
+	private long parseLong(String numberString) {
+		long x = 0;
+		try {
+			x = NumberFormat.getInstance().parse(numberString).longValue();
+		} catch (ParseException e) {
+			
+		}
+		return x;
+	}
+
+	@Field("MICROSECONDS:server.process.time")
+	public void setResponseTime(String responseTime) {
+		this.responseTime = parseLong(responseTime);;
+
+	}
+
+	public long getResponseSize() {
+		return responseSize;
+	}
+
+	public long getResponseTime() {
+		return responseTime;
+	}
+
+	@Field("STRING:request.status.last")
+	public void setStatus(String status) {
+		this.status = status;
+
+	}
+
+	/**
+	 * 2016-11-14 15:56:14 INFO Main:68 - BYTES:response.body.bytesclf [STRING,
+	 * LONG] 2016-11-14 15:56:14 INFO Main:68 - IP:connection.client.host
+	 * [STRING]
+	 */
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append(clientIdentd).append(", ").append(dateTimeString).append(", ").append(endpoint).append(", ")
+				.append(ipAddress).append(", ").append(method).append(",").append(protocol).append(",").append(path)
+				.append(",").append(userID).append(",").append(action).append(",").append(responseSize).append(",")
+				.append(responseTime).append(",")
+				.append(status).append(System.lineSeparator());
+		return builder.toString();
+	}
+
+	public String getPath() {
+		return path;
+	}
+
+	public String getAction() {
+		return action;
+	}
+	
+	
+	public static String headerString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("clientIdentd").append(", dateTimeString").append(", endpoint").append(",ipAddress")
+				.append(", method").append(", protocol").append(", path").append(", userID").append(", action")
+				.append(", responseSize").append(",responseTime").append(",responseTime").append(System.lineSeparator());
+		return builder.toString();
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
 }

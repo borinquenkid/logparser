@@ -16,97 +16,197 @@
  */
 package nl.basjes.parse;
 
-import nl.basjes.parse.core.Parser;
-import nl.basjes.parse.core.exceptions.DissectionFailure;
-import nl.basjes.parse.core.exceptions.InvalidDissectorException;
-import nl.basjes.parse.core.exceptions.MissingDissectorsException;
-import nl.basjes.parse.httpdlog.ApacheHttpdLoglineParser;
-import nl.basjes.parse.httpdlog.HttpdLoglineParser;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import nl.basjes.parse.core.Parser;
+import nl.basjes.parse.httpdlog.ApacheHttpdLoglineParser;
+import nl.basjes.parse.httpdlog.HttpdLoglineParser;
 
 public final class Main {
-    private Main(){}
+	private Main() {
+	}
 
-    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+	private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
-    private void printAllPossibles(String logformat) {
-        // To figure out what values we CAN get from this line we instantiate the parser with a dummy class
-        // that does not have ANY @Field annotations.
-        Parser<Object> dummyParser= new HttpdLoglineParser<>(Object.class, logformat);
+	private void printAllPossibles(String logformat) {
+		// To figure out what values we CAN get from this line we instantiate
+		// the parser with a dummy class
+		// that does not have ANY @Field annotations.
+		Parser<Object> dummyParser = new HttpdLoglineParser<Object>(Object.class, logformat);
 
-        List<String> possiblePaths;
-        possiblePaths = dummyParser.getPossiblePaths();
+		List<String> possiblePaths;
+		possiblePaths = dummyParser.getPossiblePaths();
 
-        // If you want to call 'getCasts' then the actual parser needs to be constructed.
-        // Simply calling getPossiblePaths does not build the actual parser.
-        // Because we want this for all possibilities yet we are never actually going to use this instance of the parser
-        // We simply give it a random method with the right signature and tell it we want all possible paths
-        try {
-            dummyParser.addParseTarget(String.class.getMethod("indexOf", String.class), possiblePaths);
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-            return;
-        }
+		// If you want to call 'getCasts' then the actual parser needs to be
+		// constructed.
+		// Simply calling getPossiblePaths does not build the actual parser.
+		// Because we want this for all possibilities yet we are never actually
+		// going to use this instance of the parser
+		// We simply give it a random method with the right signature and tell
+		// it we want all possible paths
+		try {
+			dummyParser.addParseTarget(String.class.getMethod("indexOf", String.class), possiblePaths);
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+			return;
+		}
 
-        LOG.info("==================================");
-        LOG.info("Possible output:");
-        for (String path : possiblePaths) {
-            LOG.info("{}     {}", path, dummyParser.getCasts(path));
-        }
-        LOG.info("==================================");
-    }
+		LOG.info("==================================");
+		LOG.info("Possible output:");
+		for (String path : possiblePaths) {
+			LOG.info("{}     {}", path, dummyParser.getCasts(path));
+		}
+		LOG.info("==================================");
+	}
 
-    private void run() throws InvalidDissectorException, MissingDissectorsException {
+	private void run() throws Exception {
 
-        // This format and logline originate from here:
-        // http://stackoverflow.com/questions/20349184/java-parse-log-file
-        String logformat = "%t %u [%D %h %{True-Client-IP}i %{UNIQUE_ID}e %r] %{Cookie}i %s \"%{User-Agent}i\" \"%{host}i\" %l %b %{Referer}i";
-        String logline = "[02/Dec/2013:14:10:30 -0000] - [52075 10.102.4.254 177.43.52.210 UpyU1gpmBAwAACfd5W0AAAAW GET /SS14-VTam-ny_019.j" +
-                "pg.rendition.zoomable.jpg HTTP/1.1] hsfirstvisit=http%3A%2F%2Fwww.domain.com%2Fen-us||1372268254000; _opt_vi_3FNG8DZU=F870" +
-                "DCFD-CBA4-4B6E-BB58-4605A78EE71A; __ptca=145721067.0aDxsZlIuM48.1372279055.1379945057.1379950362.9; __ptv_62vY4e=0aDxsZlIu" +
-                "M48; __pti_62vY4e=0aDxsZlIuM48; __ptcz=145721067.1372279055.1.0.ptmcsr=(direct)|ptmcmd=(none)|ptmccn=(direct); __hstc=1457" +
-                "21067.b86362bb7a1d257bfa2d1fb77e128a85.1372268254968.1379934256743.1379939561848.9; hubspotutk=b86362bb7a1d257bfa2d1fb77e1" +
-                "28a85; USER_GROUP=julinho%3Afalse; has_js=1; WT_FPC=id=177.43.52.210-1491335248.30301337:lv=1385997780893:ss=1385997780893" +
-                "; dtCookie=1F2E0E1037589799D8D503EB8CFA12A1|_default|1; RM=julinho%3A5248423ad3fe062f06c54915e6cde5cb45147977; wcid=UpyKsQ" +
-                "pmBAwAABURyNoAAAAS%3A35d8227ba1e8a9a9cebaaf8d019a74777c32b4c8; Carte::KerberosLexicon_getWGSN=82ae3dcd1b956288c3c86bdbed6e" +
-                "bcc0fd040e1e; UserData=Username%3AJULINHO%3AHomepage%3A1%3AReReg%3A0%3ATrialist%3A0%3ALanguage%3Aen%3ACcode%3Abr%3AForceRe" +
-                "Reg%3A0; UserID=1356673%3A12345%3A1234567890%3A123%3Accode%3Abr; USER_DATA=1356673%3Ajulinho%3AJulio+Jose%3Ada+Silva%3Ajul" +
-                "inho%40tecnoblu.com.br%3A0%3A1%3Aen%3Abr%3A%3AWGSN%3A1385990833.81925%3A82ae3dcd1b956288c3c86bdbed6ebcc0fd040e1e; MODE=FON" +
-                "TIS; SECTION=%2Fcontent%2Fsection%2Fhome.html; edge_auth=ip%3D177.43.52.210~expires%3D1385994522~access%3D%2Fapps%2F%2A%21" +
-                "%2Fbin%2F%2A%21%2Fcontent%2F%2A%21%2Fetc%2F%2A%21%2Fhome%2F%2A%21%2Flibs%2F%2A%21%2Freport%2F%2A%21%2Fsection%2F%2A%21%2Fw" +
-                "gsn%2F%2A~md5%3D90e73ee10161c1afacab12c6ea30b4ef; __utma=94539802.1793276213.1372268248.1385572390.1385990581.16; __utmb=9" +
-                "4539802.52.9.1385991739764; __utmc=94539802; __utmz=94539802.1372268248.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none);" +
-                " WT_FPC=id=177.43.52.210-1491335248.30301337:lv=1386000374581:ss=1386000374581; dtPC=-; NSC_wtfswfs_xfcgbsn40-41=ffffffff0" +
-                "96e1a1d45525d5f4f58455e445a4a423660; akamai-edge=5ac6e5b3d0bbe2ea771bb2916d8bab34ea222a6a 200 \"Mozilla/5.0 (Windows NT 6." +
-                "2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36\" \"www.domain.com\" - 463952 http://ww" +
-                "w.domain.com/content/report/shows/New_York/KSHK/trip/s_s_14_ny_ww/sheers.html";
+		String logformat = "%h %l %u %t %D %T \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"";
 
-        printAllPossibles(logformat);
+		printAllPossibles(logformat);
 
-        Parser<MyRecord> parser = new ApacheHttpdLoglineParser<>(MyRecord.class, logformat);
-        MyRecord record = new MyRecord();
+		Parser<MyRecord> parser = new ApacheHttpdLoglineParser<MyRecord>(MyRecord.class, logformat);
+		parser.ignoreMissingDissectors();
 
-        LOG.info("==================================================================================");
-        try {
-            parser.parse(record, logline);
-            LOG.info(record.toString());
+		String inputFile = "/Users/walterbduquedeestrada/logs/access_log-20160807";
+		
 
-        } catch (DissectionFailure dissectionFailure) {
-            dissectionFailure.printStackTrace();
-        }
-        LOG.info("==================================================================================");
-    }
+		//Load file in memory
+		File file = new File(inputFile);
+		if (!file.exists()) {
+			throw new RuntimeException("Input file does not exist");
+		}
+		BufferedReader reader = new BufferedReader(new FileReader(file));
+		List<String> readLines = new ArrayList<String>();
+		String line = reader.readLine();
+		while (line != null) {
+			readLines.add(line);
+			line = reader.readLine();
+		}
+		reader.close();
+		
+		//Parse apache logs
+		List<MyRecord> myRecords = new ArrayList<MyRecord>();
+		for (String readLine : readLines) {
 
-    /**
-     * @param args The commandline arguments
-     * @throws IllegalAccessException
-     * @throws InstantiationException
-     */
-    public static void main(final String[] args) throws Exception {
-        new Main().run();
-    }
+			try {
+				MyRecord myRecord = new MyRecord();
+				parser.parse(myRecord, readLine);
+				if (myRecord.getAction() != null && "200".equals(myRecord.getStatus()) && myRecord.getPath() != null
+						&& myRecord.getPath().contains("WSUser")) {
+					myRecords.add(myRecord);
+				}
+			} catch (Exception e) {
+			}
+		}
+		
+		//Group by action
+		Map<String, List<MyRecord>> map = new HashMap<String, List<MyRecord>>();
+		for (MyRecord item : myRecords) {
+
+			String key = item.getAction();
+			if (map.get(key) == null) {
+				map.put(key, new ArrayList<MyRecord>());
+			}
+			map.get(key).add(item);
+		}
+		
+		//Collect stats
+		List<MyRecordStats> recordStats = new ArrayList<MyRecordStats>();
+		for (Entry<String, List<MyRecord>> entry : map.entrySet()) {
+			MyRecordStats stats = new MyRecordStats();
+			stats.setActionName(entry.getKey());
+			long responseCount = entry.getValue().size();
+			stats.setResponseCount(responseCount);
+			long sum = 0;
+			for(MyRecord myRecord:entry.getValue()) {
+				sum = sum + myRecord.getResponseTime();
+			}
+			BigDecimal average = new BigDecimal(sum).divide(new BigDecimal(responseCount*1000000), 2, RoundingMode.HALF_UP).setScale(2, RoundingMode.UP);
+			stats.setAverageResponseTime(average.toPlainString());
+			recordStats.add(stats);
+		}
+		
+		
+		//Write lines to file
+		String outputFile = "/Users/walterbduquedeestrada/logs/access_log-20160807.csv";
+		PrintWriter f0 = new PrintWriter(new FileWriter(outputFile));
+		f0.print(MyRecord.headerString());
+		for (MyRecordStats myRecordStats : recordStats) {
+			f0.print(myRecordStats.toString());
+		}
+		f0.close();
+/*		
+		
+
+		try (Stream<String> stream = Files.lines(Paths.get(inputFile))) {
+			System.out.println(MyRecord.headerString());
+			Files.write(Paths.get(outputFile), MyRecord.headerString().getBytes());
+
+			Stream<MyRecord> recordStream = stream.map(logLine -> {
+				MyRecord record = new MyRecord();
+				try {
+					parser.parse(record, logLine.trim());
+				} catch (Exception e) {
+				}
+				return record;
+			}).filter(myRecord -> {
+				boolean b = myRecord.getAction() != null && "200".equals(myRecord.getStatus())
+						&& myRecord.getPath() != null && myRecord.getPath().contains("WSUser");
+
+				if (b) {
+					LOG.debug(myRecord.toString());
+				}
+				return b;
+			});
+			Map<String, List<MyRecord>> collect = recordStream.collect(Collectors.groupingBy(MyRecord::getAction));
+			Stream<Entry<String, List<MyRecord>>> stream2 = collect.entrySet().stream();
+			List<MyRecordStats> collect2 = stream2.map(entry -> {
+				MyRecordStats stats = new MyRecordStats();
+				stats.setActionName(entry.getKey());
+				stats.setResponseCount(entry.getValue().size());
+				OptionalDouble average = entry.getValue().stream().mapToLong(MyRecord::getResponseTime).average();
+				stats.setAverageResponseTime(average.getAsDouble());
+				return stats;
+			}).collect(Collectors.toList());
+
+			collect2.forEach(myRecordStats -> {
+				try {
+					Files.write(Paths.get(outputFile), myRecordStats.toString().getBytes(), StandardOpenOption.CREATE,
+							StandardOpenOption.APPEND);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			});
+
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}*/
+
+	}
+
+	/**
+	 * @param args
+	 *            The commandline arguments
+	 * @throws IllegalAccessException
+	 * @throws InstantiationException
+	 */
+	public static void main(final String[] args) throws Exception {
+		new Main().run();
+	}
 
 }
