@@ -31,7 +31,7 @@ public class ApacheHttpLogStats {
 				responseCount, averageResponseTime) + System.lineSeparator();
 	}
 	
-	public String headerString() {
+	public static String headerString() {
 		return "actionName, responseCount, averageResponseTime";
 	}
 

@@ -13,6 +13,7 @@
 	<artifactId>report.gen</artifactId>
 	<groupId>ehi-perf</groupId>
 	<version>1.0</version>
+	<packaging>jar</packaging>
 	<name>EHI Apache Performance Report Generator</name>
 	<dependencies>
 		<dependency>
@@ -35,6 +36,11 @@
 			<artifactId>commons-cli</artifactId>
 			<version>1.2</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-assembly-plugin</artifactId>
+			<version>3.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -46,6 +52,29 @@
 				<configuration>
 					<skip>true</skip>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.3</version>
+				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+					<archive>
+						<manifest>
+							<mainClass>com.ehi.carshare.Main	</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

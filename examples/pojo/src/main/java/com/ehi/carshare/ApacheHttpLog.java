@@ -16,13 +16,10 @@
  */
 package com.ehi.carshare;
 
-import nl.basjes.parse.core.Field;
-
 import java.text.NumberFormat;
 import java.text.ParseException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeSet;
+
+import nl.basjes.parse.core.Field;
 
 public class ApacheHttpLog {
 

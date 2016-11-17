@@ -29,6 +29,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +45,7 @@ import nl.basjes.parse.httpdlog.ApacheHttpdLoglineParser;
 import nl.basjes.parse.httpdlog.HttpdLoglineParser;
 
 public final class Main {
-	private Main() {
-	}
+
 
 	private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
@@ -73,19 +80,14 @@ public final class Main {
 		LOG.info("==================================");
 	}
 
-	private void run() throws Exception {
-
-		String logformat = "%h %l %u %t %D %T \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"";
+	private void run(String logformat, String inputFile, String outputFile) throws Exception {
 
 		printAllPossibles(logformat);
 
 		Parser<ApacheHttpLog> parser = new ApacheHttpdLoglineParser<ApacheHttpLog>(ApacheHttpLog.class, logformat);
 		parser.ignoreMissingDissectors();
 
-		String inputFile = "/Users/walterbduquedeestrada/logs/access_log-20160807";
-		
-
-		//Load file in memory
+		// Load file in memory
 		File file = new File(inputFile);
 		if (!file.exists()) {
 			throw new RuntimeException("Input file does not exist");
@@ -98,8 +100,8 @@ public final class Main {
 			line = reader.readLine();
 		}
 		reader.close();
-		
-		//Parse apache logs
+
+		// Parse apache logs
 		List<ApacheHttpLog> myRecords = new ArrayList<ApacheHttpLog>();
 		for (String readLine : readLines) {
 
@@ -107,14 +109,15 @@ public final class Main {
 				ApacheHttpLog myRecord = new ApacheHttpLog();
 				parser.parse(myRecord, readLine);
 				if (myRecord.getAction() != null && "200".equals(myRecord.getStatus()) && myRecord.getPath() != null
-						&& myRecord.getPath().contains("WSUser")) {
+						&& myRecord.getPath().contains("WSRest")) {
 					myRecords.add(myRecord);
 				}
 			} catch (Exception e) {
+		//		e.printStackTrace();
 			}
 		}
-		
-		//Group by action
+
+		// Group by action
 		Map<String, List<ApacheHttpLog>> map = new HashMap<String, List<ApacheHttpLog>>();
 		for (ApacheHttpLog item : myRecords) {
 
@@ -124,8 +127,8 @@ public final class Main {
 			}
 			map.get(key).add(item);
 		}
-		
-		//Collect stats
+
+		// Collect stats
 		List<ApacheHttpLogStats> recordStats = new ArrayList<ApacheHttpLogStats>();
 		for (Entry<String, List<ApacheHttpLog>> entry : map.entrySet()) {
 			ApacheHttpLogStats stats = new ApacheHttpLogStats();
@@ -133,70 +136,66 @@ public final class Main {
 			long responseCount = entry.getValue().size();
 			stats.setResponseCount(responseCount);
 			long sum = 0;
-			for(ApacheHttpLog myRecord:entry.getValue()) {
+			for (ApacheHttpLog myRecord : entry.getValue()) {
 				sum = sum + myRecord.getResponseTime();
 			}
-			BigDecimal average = new BigDecimal(sum).divide(new BigDecimal(responseCount*1000000), 2, RoundingMode.HALF_UP).setScale(2, RoundingMode.UP);
+			BigDecimal average = new BigDecimal(sum)
+					.divide(new BigDecimal(responseCount * 1000000), 2, RoundingMode.HALF_UP)
+					.setScale(2, RoundingMode.UP);
 			stats.setAverageResponseTime(average.toPlainString());
 			recordStats.add(stats);
 		}
-		
-		
-		//Write lines to file
-		String outputFile = "/Users/walterbduquedeestrada/logs/access_log-20160807.csv";
+
+		// Write lines to file
 		PrintWriter f0 = new PrintWriter(new FileWriter(outputFile));
-		f0.print(ApacheHttpLog.headerString());
+		f0.print(ApacheHttpLogStats.headerString());
 		for (ApacheHttpLogStats myRecordStats : recordStats) {
 			f0.print(myRecordStats.toString());
 		}
 		f0.close();
-/*		
-		
+		/*
+		 * 
+		 * 
+		 * try (Stream<String> stream = Files.lines(Paths.get(inputFile))) {
+		 * System.out.println(MyRecord.headerString());
+		 * Files.write(Paths.get(outputFile),
+		 * MyRecord.headerString().getBytes());
+		 * 
+		 * Stream<MyRecord> recordStream = stream.map(logLine -> { MyRecord
+		 * record = new MyRecord(); try { parser.parse(record, logLine.trim());
+		 * } catch (Exception e) { } return record; }).filter(myRecord -> {
+		 * boolean b = myRecord.getAction() != null &&
+		 * "200".equals(myRecord.getStatus()) && myRecord.getPath() != null &&
+		 * myRecord.getPath().contains("WSUser");
+		 * 
+		 * if (b) { LOG.debug(myRecord.toString()); } return b; }); Map<String,
+		 * List<MyRecord>> collect =
+		 * recordStream.collect(Collectors.groupingBy(MyRecord::getAction));
+		 * Stream<Entry<String, List<MyRecord>>> stream2 =
+		 * collect.entrySet().stream(); List<MyRecordStats> collect2 =
+		 * stream2.map(entry -> { MyRecordStats stats = new MyRecordStats();
+		 * stats.setActionName(entry.getKey());
+		 * stats.setResponseCount(entry.getValue().size()); OptionalDouble
+		 * average =
+		 * entry.getValue().stream().mapToLong(MyRecord::getResponseTime).
+		 * average(); stats.setAverageResponseTime(average.getAsDouble());
+		 * return stats; }).collect(Collectors.toList());
+		 * 
+		 * collect2.forEach(myRecordStats -> { try {
+		 * Files.write(Paths.get(outputFile),
+		 * myRecordStats.toString().getBytes(), StandardOpenOption.CREATE,
+		 * StandardOpenOption.APPEND); } catch (IOException e) {
+		 * e.printStackTrace(); } });
+		 * 
+		 * } catch (Throwable e) { e.printStackTrace(); }
+		 */
 
-		try (Stream<String> stream = Files.lines(Paths.get(inputFile))) {
-			System.out.println(MyRecord.headerString());
-			Files.write(Paths.get(outputFile), MyRecord.headerString().getBytes());
+	}
 
-			Stream<MyRecord> recordStream = stream.map(logLine -> {
-				MyRecord record = new MyRecord();
-				try {
-					parser.parse(record, logLine.trim());
-				} catch (Exception e) {
-				}
-				return record;
-			}).filter(myRecord -> {
-				boolean b = myRecord.getAction() != null && "200".equals(myRecord.getStatus())
-						&& myRecord.getPath() != null && myRecord.getPath().contains("WSUser");
-
-				if (b) {
-					LOG.debug(myRecord.toString());
-				}
-				return b;
-			});
-			Map<String, List<MyRecord>> collect = recordStream.collect(Collectors.groupingBy(MyRecord::getAction));
-			Stream<Entry<String, List<MyRecord>>> stream2 = collect.entrySet().stream();
-			List<MyRecordStats> collect2 = stream2.map(entry -> {
-				MyRecordStats stats = new MyRecordStats();
-				stats.setActionName(entry.getKey());
-				stats.setResponseCount(entry.getValue().size());
-				OptionalDouble average = entry.getValue().stream().mapToLong(MyRecord::getResponseTime).average();
-				stats.setAverageResponseTime(average.getAsDouble());
-				return stats;
-			}).collect(Collectors.toList());
-
-			collect2.forEach(myRecordStats -> {
-				try {
-					Files.write(Paths.get(outputFile), myRecordStats.toString().getBytes(), StandardOpenOption.CREATE,
-							StandardOpenOption.APPEND);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			});
-
-		} catch (Throwable e) {
-			e.printStackTrace();
-		}*/
-
+	@SuppressWarnings("static-access")
+	private static Option buildOption(String argName, String longOpt, String description) {
+		return OptionBuilder.isRequired().hasArg(true).withLongOpt(longOpt).withDescription(description)
+				.create(argName);
 	}
 
 	/**
@@ -206,7 +205,28 @@ public final class Main {
 	 * @throws InstantiationException
 	 */
 	public static void main(final String[] args) throws Exception {
-		new Main().run();
+		// create the command line parser
+		CommandLineParser parser = new BasicParser();
+
+		// create the Options
+		Options options = new Options();
+		options.addOption(buildOption("l", "logFormat", "The apache logformat"));
+		options.addOption(buildOption("i", "inputFile", "complete path to the input file"));
+		options.addOption(buildOption("o", "outputFile", "complete path to the output file"));
+
+		try {
+			// parse the command line arguments
+			CommandLine line = parser.parse(options, args);
+			String logformat = line.getOptionValue('l');
+			String inputFile = line.getOptionValue('i');
+			String outputFile = line.getOptionValue('o');
+			new Main().run(logformat, inputFile, outputFile);
+
+		} catch (ParseException exp) {
+			HelpFormatter formatter = new HelpFormatter();
+			formatter.printHelp("myapp", "", options, "", true);
+		}
+
 	}
 
 }
