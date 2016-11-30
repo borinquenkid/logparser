@@ -98,12 +98,11 @@ public final class Main {
 			try {
 				ApacheHttpLog myRecord = new ApacheHttpLog();
 				parser.parse(myRecord, readLine);
-				if (myRecord.getAction() != null && "200".equals(myRecord.getStatus()) && myRecord.getPath() != null
-						&& myRecord.getPath().contains("WSRest")) {
+				if (myRecord.getAction() != null && "200".equals(myRecord.getStatus()) && myRecord.getPath() != null) {
 					myRecords.add(myRecord);
 				}
 			} catch (Exception e) {
-		//		e.printStackTrace();
+		///		e.printStackTrace();
 			}
 		}
 
