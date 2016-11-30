@@ -32,7 +32,7 @@ public class ApacheHttpLogStats {
 	}
 	
 	public static String headerString() {
-		return "actionName, responseCount, averageResponseTime";
+		return "actionName, responseCount, averageResponseTime" + System.lineSeparator();
 	}
 
 }

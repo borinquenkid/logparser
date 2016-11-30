@@ -50,21 +50,11 @@ public final class Main {
 	private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
 	private void printAllPossibles(String logformat) {
-		// To figure out what values we CAN get from this line we instantiate
-		// the parser with a dummy class
-		// that does not have ANY @Field annotations.
 		Parser<Object> dummyParser = new HttpdLoglineParser<Object>(Object.class, logformat);
 
 		List<String> possiblePaths;
 		possiblePaths = dummyParser.getPossiblePaths();
 
-		// If you want to call 'getCasts' then the actual parser needs to be
-		// constructed.
-		// Simply calling getPossiblePaths does not build the actual parser.
-		// Because we want this for all possibilities yet we are never actually
-		// going to use this instance of the parser
-		// We simply give it a random method with the right signature and tell
-		// it we want all possible paths
 		try {
 			dummyParser.addParseTarget(String.class.getMethod("indexOf", String.class), possiblePaths);
 		} catch (NoSuchMethodException e) {
@@ -153,42 +143,7 @@ public final class Main {
 			f0.print(myRecordStats.toString());
 		}
 		f0.close();
-		/*
-		 * 
-		 * 
-		 * try (Stream<String> stream = Files.lines(Paths.get(inputFile))) {
-		 * System.out.println(MyRecord.headerString());
-		 * Files.write(Paths.get(outputFile),
-		 * MyRecord.headerString().getBytes());
-		 * 
-		 * Stream<MyRecord> recordStream = stream.map(logLine -> { MyRecord
-		 * record = new MyRecord(); try { parser.parse(record, logLine.trim());
-		 * } catch (Exception e) { } return record; }).filter(myRecord -> {
-		 * boolean b = myRecord.getAction() != null &&
-		 * "200".equals(myRecord.getStatus()) && myRecord.getPath() != null &&
-		 * myRecord.getPath().contains("WSUser");
-		 * 
-		 * if (b) { LOG.debug(myRecord.toString()); } return b; }); Map<String,
-		 * List<MyRecord>> collect =
-		 * recordStream.collect(Collectors.groupingBy(MyRecord::getAction));
-		 * Stream<Entry<String, List<MyRecord>>> stream2 =
-		 * collect.entrySet().stream(); List<MyRecordStats> collect2 =
-		 * stream2.map(entry -> { MyRecordStats stats = new MyRecordStats();
-		 * stats.setActionName(entry.getKey());
-		 * stats.setResponseCount(entry.getValue().size()); OptionalDouble
-		 * average =
-		 * entry.getValue().stream().mapToLong(MyRecord::getResponseTime).
-		 * average(); stats.setAverageResponseTime(average.getAsDouble());
-		 * return stats; }).collect(Collectors.toList());
-		 * 
-		 * collect2.forEach(myRecordStats -> { try {
-		 * Files.write(Paths.get(outputFile),
-		 * myRecordStats.toString().getBytes(), StandardOpenOption.CREATE,
-		 * StandardOpenOption.APPEND); } catch (IOException e) {
-		 * e.printStackTrace(); } });
-		 * 
-		 * } catch (Throwable e) { e.printStackTrace(); }
-		 */
+
 
 	}
 
